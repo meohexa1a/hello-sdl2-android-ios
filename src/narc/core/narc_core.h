@@ -16,7 +16,6 @@
 struct ScheduledTask
 {
     std::function<void()> callback;
-
     std::chrono::steady_clock::time_point executeAt;
     std::chrono::milliseconds interval{0};
     int repeat{-1};
@@ -28,10 +27,7 @@ struct ScheduledTask
 class NarcCoreApplication
 {
 public:
-    /** Init Narc Application. Post first task before scheduler completes init */
     static void init(std::function<void()> firstTask) throw(NarcInitFailedException);
-
-    /** Shutdown Narc Application */
     static void shutdown() throw(NarcShutdownFailedException);
 
 private:
@@ -55,10 +51,13 @@ public:
 
 protected:
     static void runPending();
+    static bool shouldSleep();
 
 private:
     inline static std::vector<ScheduledTask> tasks;
     inline static std::mutex mtx;
+
+    static std::vector<ScheduledTask> getPendingTasks();
 };
 
 // ----------------------------
@@ -78,19 +77,19 @@ public:
     static State getState() { return state; }
     static void setState(State s) { state = s; }
 
-    static const SDL_Window* getSDLWindow() { return SDLWindow; }
-    static const SDL_Renderer* getSDLRenderer() { return SDLRenderer; }
-    static const SDL_RendererInfo* getSDLRenderInfo() { return &SDLRenderInfo; }
+    static SDL_Window *getSDLWindow() { return SDLWindow; }
+    static SDL_Renderer *getSDLRenderer() { return SDLRenderer; }
+    static SDL_RendererInfo *getSDLRenderInfo() { return &SDLRenderInfo; }
 
 protected:
     static void init();
     static void shutdown();
 
 private:
-    static inline State state = STARTING;
-    static inline SDL_Window* SDLWindow = nullptr;
-    static inline SDL_Renderer* SDLRenderer = nullptr;
-    static inline SDL_RendererInfo SDLRenderInfo{};
+    inline static State state = STARTING;
+    inline static SDL_Window *SDLWindow = nullptr;
+    inline static SDL_Renderer *SDLRenderer = nullptr;
+    inline static SDL_RendererInfo SDLRenderInfo{};
 };
 
 // ----------------------------
@@ -109,22 +108,24 @@ public:
     };
 
     static const Config &getConfig() { return config; }
-
-    static void setDrawCallback(std::function<void()> cb)
+    static void setDrawCallback(std::function<void(SDL_Renderer *renderer)> cb)
     {
         drawCallback = std::move(cb);
     }
 
+protected:
     static void init();
     static void shutdown();
-
-private:
-    static void renderLoop();
-    static void limitFps(std::chrono::high_resolution_clock::time_point frameStartTime);
 
 private:
     inline static Config config{};
     inline static std::thread renderThread;
     inline static std::atomic<bool> isRunning = false;
-    inline static std::function<void()> drawCallback;
+    inline static std::function<void(SDL_Renderer *)> drawCallback;
+
+    static bool getIsRunning();
+    static void setIsRunning(bool value);
+
+    static void renderLoop();
+    static void limitFps(std::chrono::high_resolution_clock::time_point frameStartTime);
 };

@@ -1,106 +1,84 @@
 #include "narc_core.h"
 #include "narc_exception.h"
-
 #include <SDL.h>
+#undef main
+#include <iostream>
+#include <thread>
 
-class NarcDraw
+void NarcDraw::init()
 {
-    struct Config
+    if (getIsRunning())
+        return;
+
+    setIsRunning(true);
+    renderThread = std::thread(&NarcDraw::renderLoop);
+}
+
+void NarcDraw::shutdown()
+{
+    setIsRunning(false);
+
+    if (renderThread.joinable())
+        renderThread.join();
+}
+
+bool NarcDraw::getIsRunning()
+{
+    return isRunning;
+}
+
+void NarcDraw::setIsRunning(bool value)
+{
+    isRunning = value;
+}
+
+void NarcDraw::renderLoop()
+{
+    while (isRunning)
     {
-        bool vsyncEnabled = true;
-        int targetFps = 60; // -1 = unlimited
-    };
+        auto frameStartTime = std::chrono::high_resolution_clock::now();
 
-public:
-    static void init()
-    {
-        if (getIsRunning())
-            return;
-        setIsRunning(true);
-
-        renderThread = std::thread(&NarcDraw::renderLoop);
-    };
-
-    static void shutdown()
-    {
-        setIsRunning(false);
-
-        if (renderThread.joinable())
-            renderThread.join();
-    };
-
-private:
-    static void renderLoop()
-    {
-        while (isRunning)
+        try
         {
-            auto frameStartTime = std::chrono::high_resolution_clock::now();
-
-            try
+            if (!drawCallback)
             {
-                if (!drawCallback)
-                {
-                    limitFps(frameStartTime);
-                    continue;
-                }
-
-                auto drawCalls = drawCallback();
-                if (drawCalls.empty())
-                {
-                    limitFps(frameStartTime);
-                    continue;
-                }
-
-                // clear screen
-                SDL_SetRenderDrawColor(const_cast<SDL_Renderer *>(NarcState::getSDLRenderer()), 0, 0, 0, 255);
-                SDL_RenderClear(const_cast<SDL_Renderer *>(NarcState::getSDLRenderer()));
-
-                // run all draw calls
-                for (auto *drawCall : drawCalls)
-                {
-                    if (drawCall)
-                    {
-                        drawCall->draw(NarcState::getSDLRenderer());
-                    }
-                }
-
-                // present
-                SDL_RenderPresent(NarcState::getSDLRenderer());
-
-                if (!config.vsyncEnabled)
-                {
-                    limitFps(frameStartTime);
-                }
+                limitFps(frameStartTime);
+                continue;
             }
-            catch (const std::exception &e)
-            {
-                std::cerr << "[NarcDraw] Error in render loop: " << e.what() << std::endl;
-            }
+
+            // clear screen
+            SDL_SetRenderDrawColor(NarcState::getSDLRenderer(), 0, 0, 0, 255);
+            SDL_RenderClear(NarcState::getSDLRenderer());
+
+            // call user callback
+            drawCallback(NarcState::getSDLRenderer());
+
+            // present
+            SDL_RenderPresent(NarcState::getSDLRenderer());
+
+            if (!config.vsyncEnabled)
+                limitFps(frameStartTime);
         }
-    };
-    static void limitFps(std::chrono::high_resolution_clock::time_point frameStartTime)
-    {
-        if (config.targetFps < 0)
-            return; // unlimited
-
-        auto frameEndTime = std::chrono::high_resolution_clock::now();
-        auto frameTime = frameEndTime - frameStartTime;
-
-        auto targetFrame = std::chrono::nanoseconds(1'000'000'000LL / config.targetFps);
-
-        if (frameTime < targetFrame)
+        catch (const std::exception &e)
         {
-            auto sleepTime = targetFrame - frameTime;
-            std::this_thread::sleep_for(sleepTime);
+            std::cerr << "[NarcDraw] Error in render loop: " << e.what() << std::endl;
         }
-    };
+    }
+}
 
-private:
-    inline static Config config{};
-    inline static std::thread renderThread;
-    inline static std::function<void()> drawCallback;
-    inline static std::atomic<bool> isRunning = false;
+void NarcDraw::limitFps(std::chrono::high_resolution_clock::time_point frameStartTime)
+{
+    if (config.targetFps < 0)
+        return; // unlimited
 
-    static bool getIsRunning() { return isRunning; }
-    static void setIsRunning(bool value) { isRunning = value; }
-};
+    auto frameEndTime = std::chrono::high_resolution_clock::now();
+    auto frameTime = frameEndTime - frameStartTime;
+
+    auto targetFrame = std::chrono::nanoseconds(1'000'000'000LL / config.targetFps);
+
+    if (frameTime < targetFrame)
+    {
+        auto sleepTime = targetFrame - frameTime;
+        std::this_thread::sleep_for(sleepTime);
+    }
+}
