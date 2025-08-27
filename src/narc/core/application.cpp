@@ -9,7 +9,7 @@ class NarcCoreApplication
 {
 
 public:
-    static void init(Task firstTask = Task([]() {}))
+    static void init(std::function<void()> firstTask)
     {
         std::lock_guard<std::mutex> lock(mtx);
 
@@ -20,8 +20,8 @@ public:
         // init app core...
         NarcState::init();
 
-        if (firstTask.callback)
-            NarcCoreAppScheduler::post(firstTask);
+        // start first task
+        NarcCoreAppScheduler::post(firstTask);
 
         // lock thread...
         while (getIsRunning())
@@ -64,10 +64,10 @@ public:
         tasks.push_back(task);
     }
 
-    static void post(Task task)
+    static void post(std::function<void()> task)
     {
         ScheduledTask st;
-        st.callback = task.callback;
+        st.callback = task;
         st.executeAt = std::chrono::steady_clock::now();
         st.interval = std::chrono::milliseconds(0);
         st.repeat = 0;
@@ -76,12 +76,12 @@ public:
     }
 
     static void postRepeated(
-        Task task,
+        std::function<void()> task,
         std::chrono::milliseconds interval,
         int repeat = -1)
     {
         ScheduledTask st;
-        st.callback = task.callback;
+        st.callback = task;
         st.executeAt = std::chrono::steady_clock::now() + interval;
         st.interval = interval;
         st.repeat = repeat;

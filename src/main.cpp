@@ -9,7 +9,7 @@ void init()
 
 int main()
 {
-    NarcCoreApplication::init(Task(init));
+    NarcCoreApplication::init(init);
 
     return 0;
 }

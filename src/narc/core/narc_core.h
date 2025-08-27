@@ -13,17 +13,10 @@
 // ----------------------------
 // Structs
 // ----------------------------
-struct Task
-{
-    const std::function<void()> callback;
-
-    Task(std::function<void()> cb)
-        : callback(std::move(cb)) {}
-};
-
 struct ScheduledTask
 {
     std::function<void()> callback;
+
     std::chrono::steady_clock::time_point executeAt;
     std::chrono::milliseconds interval{0};
     int repeat{-1};
@@ -36,7 +29,7 @@ class NarcCoreApplication
 {
 public:
     /** Init Narc Application. Can post first task before scheduler completes init */
-    static void init(Task firstTask = Task([]() {})) throw(NarcInitFailedException);
+    static void init(std::function<void()> firstTask) throw(NarcInitFailedException);
 
     /** Shutdown Narc Application */
     static void shutdown() throw(NarcShutdownFailedException);
@@ -57,8 +50,8 @@ class NarcCoreAppScheduler
 
 public:
     static void schedule(const ScheduledTask &task);
-    static void post(Task task);
-    static void postRepeated(Task task, std::chrono::milliseconds interval, int repeat = -1);
+    static void post(std::function<void()> task);
+    static void postRepeated(std::function<void()> task, std::chrono::milliseconds interval, int repeat = -1);
 
 protected:
     static void runPending();
@@ -98,4 +91,40 @@ private:
     static inline SDL_Window *SDLWindow = nullptr;
     static inline SDL_Renderer *SDLRenderer = nullptr;
     static inline SDL_RendererInfo SDLRenderInfo{};
+};
+
+// ----------------------------
+// NarcDraw
+// ----------------------------
+
+class NarcDraw
+{
+    friend class NarcCoreApplication;
+
+public:
+    struct Config
+    {
+        bool vsyncEnabled = true;
+        int targetFps = 60; // -1 = unlimited
+    };
+
+    static const Config &getConfig() { return config; }
+
+    static void setDrawCallback(std::function<void()> cb)
+    {
+        drawCallback = std::move(cb);
+    }
+
+    static void init();
+    static void shutdown();
+
+private:
+    static void renderLoop();
+    static void limitFps(std::chrono::high_resolution_clock::time_point frameStartTime);
+
+private:
+    inline static Config config{};
+    inline static std::thread renderThread;
+    inline static std::atomic<bool> isRunning = false;
+    inline static std::function<void()> drawCallback;
 };
