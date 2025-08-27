@@ -48,14 +48,10 @@ class NarcShutdownFailedException
 {
 public:
     explicit NarcShutdownFailedException(const std::string &message)
-        : std::runtime_error(message)
-    {
-    }
+        : std::runtime_error(message) {}
 
     explicit NarcShutdownFailedException()
-        : std::runtime_error("Narc shutdown failed without message.")
-    {
-    }
+        : std::runtime_error("Narc shutdown failed without message.") {}
 
     // -----------------------------------------------------------
 

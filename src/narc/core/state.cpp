@@ -20,9 +20,9 @@ public:
     static State getState() { return state; }
     static void setState(State s) { state = s; }
 
-    static const SDL_Window *getSDLWindow() { return SDLWindow; }
-    static const SDL_Renderer *getSDLRenderer() { return SDLRenderer; }
-    static const SDL_RendererInfo *getSDLRenderInfo() { return &SDLRenderInfo; }
+    static SDL_Window *getSDLWindow() { return SDLWindow; }
+    static SDL_Renderer *getSDLRenderer() { return SDLRenderer; }
+    static SDL_RendererInfo *getSDLRenderInfo() { return &SDLRenderInfo; }
 
 protected:
     static void init()
@@ -58,9 +58,16 @@ protected:
     static void shutdown()
     {
         if (SDLRenderer)
+        {
             SDL_DestroyRenderer(SDLRenderer);
+            SDLRenderer = nullptr;
+        }
+
         if (SDLWindow)
+        {
             SDL_DestroyWindow(SDLWindow);
+            SDLWindow = nullptr;
+        }
 
         SDL_Quit();
     }

@@ -28,7 +28,7 @@ struct ScheduledTask
 class NarcCoreApplication
 {
 public:
-    /** Init Narc Application. Can post first task before scheduler completes init */
+    /** Init Narc Application. Post first task before scheduler completes init */
     static void init(std::function<void()> firstTask) throw(NarcInitFailedException);
 
     /** Shutdown Narc Application */
@@ -78,9 +78,9 @@ public:
     static State getState() { return state; }
     static void setState(State s) { state = s; }
 
-    static const SDL_Window *getSDLWindow() { return SDLWindow; }
-    static const SDL_Renderer *getSDLRenderer() { return SDLRenderer; }
-    static const SDL_RendererInfo *getSDLRenderInfo() { return &SDLRenderInfo; }
+    static const SDL_Window* getSDLWindow() { return SDLWindow; }
+    static const SDL_Renderer* getSDLRenderer() { return SDLRenderer; }
+    static const SDL_RendererInfo* getSDLRenderInfo() { return &SDLRenderInfo; }
 
 protected:
     static void init();
@@ -88,8 +88,8 @@ protected:
 
 private:
     static inline State state = STARTING;
-    static inline SDL_Window *SDLWindow = nullptr;
-    static inline SDL_Renderer *SDLRenderer = nullptr;
+    static inline SDL_Window* SDLWindow = nullptr;
+    static inline SDL_Renderer* SDLRenderer = nullptr;
     static inline SDL_RendererInfo SDLRenderInfo{};
 };
 

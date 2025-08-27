@@ -43,8 +43,8 @@ public:
     }
 
 private:
-    inline static std::atomic<bool> isRunning = false;
     inline static std::mutex mtx;
+    inline static std::atomic<bool> isRunning = false;
 
     static bool getIsRunning() { return isRunning; }
     static void setIsRunning(bool value) { isRunning = value; }
